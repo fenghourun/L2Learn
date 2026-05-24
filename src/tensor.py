@@ -33,8 +33,19 @@ class Tensor:
             - Assumes rectangular structure
             - Example:
                 [[1,2,3],[4,5,6]] -> (2,3)
+                [] -> (0)
+                [[]] -> (1, 0)
         """
-        pass
+        dims = []
+        curr_data = self.data
+        while isinstance(curr_data, list):
+            dims.append(len(curr_data))
+            if len(curr_data):
+                curr_data = curr_data[0]
+                continue
+            break
+        return tuple(dims)
+
 
     def __add__(self, other):
         """
@@ -50,8 +61,22 @@ class Tensor:
             - Broadcast scalar across all elements
             - Must match shapes if tensor
         """
-        pass
 
+        # Case 1: other is a number
+        # return elementwise addition
+        if isinstance(other, int):
+            pass
+
+        # Case 2: other is tensor
+        # elementwise addition
+
+    def recurse(self):
+        curr_data = self.data
+        for isinstance(curr_data, list):
+            for i in range(dimension):
+                curr_element = curr_data[i]
+            curr_data = curr_data[0]
+    
     def __mul__(self, other):
         """
         Elementwise multiplication.
