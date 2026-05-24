@@ -1,35 +1,20 @@
 # train.py
 
-from transformer import GPT
-from data import TextDataset
-
 
 def train():
-    # TODO:
-    # 1. load text
-    # 2. build dataset
-    # 3. init model
-    # 4. training loop
+    """
+    Full training loop.
 
-    model = GPT(
-        vocab_size=100,
-        d_model=128,
-        n_layers=2,
-    )
+    Expected behavior:
 
-    for step in range(1000):
-        x, y = None, None  # TODO
+    1. Load dataset
+    2. Initialize model
+    3. Loop over steps:
+        - forward pass
+        - compute cross entropy loss
+        - backpropagation
+        - update parameters (SGD first)
+        - log loss
+    """
 
-        logits = model.forward(x)
-
-        loss = None  # TODO cross entropy
-
-        # TODO:
-        # backward
-        # update weights (SGD first)
-
-        print(step, loss)
-
-
-if __name__ == "__main__":
-    train()
+    pass
