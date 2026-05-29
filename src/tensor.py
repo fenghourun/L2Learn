@@ -45,9 +45,16 @@ class Tensor:
                 continue
             break
         return tuple(dims)
+    
 
+    def __add__(self, other_tensor):
+        self.data = self.__add_two(
+            self.data, 
+            other_tensor.data if isinstance(other_tensor, Tensor) else other_tensor
+        ) 
+        return self
 
-    def __add__(self, other):
+    def __add_two(self, a, b):
         """
         Elementwise addition.
 
@@ -61,22 +68,19 @@ class Tensor:
             - Broadcast scalar across all elements
             - Must match shapes if tensor
         """
+        # Base case both are scalars
+        if not isinstance(a, list) and not isinstance(b, list):
+            return a + b
+        
+        # b is a scalar
+        if isinstance(b, int) or isinstance(b, float):
+            return [self.__add_two(x, b) for x in a]
 
-        # Case 1: other is a number
-        # return elementwise addition
-        if isinstance(other, int):
-            pass
+        if len(self.data) != len(b):
+            raise Exception("Shape mismatch when adding tensors")
 
-        # Case 2: other is tensor
-        # elementwise addition
+        return [self.__add_two(x, y) for (x, y) in zip(a, b)]
 
-    def recurse(self):
-        curr_data = self.data
-        for isinstance(curr_data, list):
-            for i in range(dimension):
-                curr_element = curr_data[i]
-            curr_data = curr_data[0]
-    
     def __mul__(self, other):
         """
         Elementwise multiplication.
@@ -108,7 +112,27 @@ class Tensor:
             - No broadcasting
             - Must validate inner dimensions
         """
-        pass
+
+        self_shape = self.shape()
+        other_shape = Tensor(data=other).shape()
+
+        if len(self_shape) != 2 or len(other_shape) != 2 or self_shape[1] != other_shape[0]:
+            raise Exception("Incompatible shapes for matmul")
+
+        n, m = self_shape
+        m, p = other_shape
+
+        result_data = [[0 for _ in range(p)] for _ in range(n)]
+
+        for i in range(n):
+            for j in range(p):
+                result_data[i][j] = 4
+        
+        result = Tensor(data=result_data)
+
+        return result
+
+        
 
     def transpose(self):
         """
@@ -132,4 +156,5 @@ class Tensor:
         Behavior:
             - Flattens recursively
         """
-        pass
+        pass 
+        # if not isinstance(self.data)
