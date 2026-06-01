@@ -1,12 +1,34 @@
-mod tensor;
+// mod tensor;
 
-use tensor::Tensor;
+// use dataset::TextDataset;
+// use model::GPT;
+// use optimizer::AdamW;
 
 fn main() {
-    let t = Tensor {
-        data: vec![1.0, 2.0, 3.0],
-        shape: vec![3],
-    };
-
-    println!("New tensor {:?}", t.shape);
+    // for step in 0..10_000 {
+    // let (x, y) = dataset.next_batch(
+    //     32, // batch size
+    //     64, // sequence length
+    // );
+    //
+    // // forward
+    // let logits = model.forward(&x);
+    //
+    // // loss
+    // let loss = logits.cross_entropy(&y);
+    //
+    // // backward
+    // loss.backward();
+    //
+    // // update weights
+    // optimizer.step();
+    //
+    // // clear gradients
+    // optimizer.zero_grad();
+    //
+    // if step % 100 == 0 {
+    //     println!("step={} loss={:.4}", step, loss.item());
+    // }
+    // }
+    println!("Hello world")
 }

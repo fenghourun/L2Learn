@@ -4,6 +4,8 @@ pub struct Tensor {
 }
 
 impl Tensor {
+    /// Only allow 2D matmul
+
     pub fn new(data: Vec<f32>, shape: Vec<usize>) -> Self {
         let expected_size = shape.iter().product();
 
@@ -17,6 +19,16 @@ impl Tensor {
         );
 
         Self { data, shape }
+    }
+
+    pub fn matmul(&self, b: &Tensor) -> Tensor {
+        assert_eq!(self.shape.len(), 2);
+        assert_eq!(b.shape.len(), 2);
+
+        Tensor {
+            data: b.data.clone(),
+            shape: b.shape.clone(),
+        }
     }
 }
 
