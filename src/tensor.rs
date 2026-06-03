@@ -1,3 +1,5 @@
+use std::ops::{Add, Div, Mul, Sub};
+
 pub struct Tensor {
     data: Vec<f32>,
     shape: Vec<usize>,
@@ -88,6 +90,126 @@ impl Tensor {
     }
 }
 
+impl Add for Tensor {
+    type Output = Tensor;
+    fn add(self, other: Tensor) -> Tensor {
+        assert_eq!(
+            self.shape, other.shape,
+            "Cannot add {:?} with {:?}",
+            self.shape, other.shape
+        );
+
+        Tensor::new(
+            self.data
+                .iter()
+                .zip(other.data.iter())
+                .map(|(a, b)| a + b)
+                .collect(),
+            self.shape,
+        )
+    }
+}
+
+impl Add<f32> for Tensor {
+    type Output = Tensor;
+    fn add(self, other: f32) -> Tensor {
+        Tensor::new(
+            self.data.iter().map(|x| x + other).collect(),
+            self.shape.clone(),
+        )
+    }
+}
+
+impl Sub for Tensor {
+    type Output = Tensor;
+    fn sub(self, other: Tensor) -> Tensor {
+        assert_eq!(
+            self.shape, other.shape,
+            "Cannot sub {:?} with {:?}",
+            self.shape, other.shape
+        );
+
+        Tensor::new(
+            self.data
+                .iter()
+                .zip(other.data.iter())
+                .map(|(a, b)| a - b)
+                .collect(),
+            self.shape,
+        )
+    }
+}
+
+impl Sub<f32> for Tensor {
+    type Output = Tensor;
+    fn sub(self, other: f32) -> Tensor {
+        Tensor::new(
+            self.data.iter().map(|x| x - other).collect(),
+            self.shape.clone(),
+        )
+    }
+}
+
+impl Mul for Tensor {
+    type Output = Tensor;
+    fn mul(self, other: Tensor) -> Tensor {
+        assert_eq!(
+            self.shape, other.shape,
+            "Cannot elementwise multiply {:?} with {:?}",
+            self.shape, other.shape
+        );
+
+        Tensor::new(
+            self.data
+                .iter()
+                .zip(other.data.iter())
+                .map(|(a, b)| a * b)
+                .collect(),
+            self.shape,
+        )
+    }
+}
+
+impl Mul<f32> for Tensor {
+    type Output = Tensor;
+    fn mul(self, other: f32) -> Tensor {
+        Tensor::new(
+            self.data.iter().map(|x| x * other).collect(),
+            self.shape.clone(),
+        )
+    }
+}
+
+impl Div for Tensor {
+    type Output = Tensor;
+    fn div(self, other: Tensor) -> Tensor {
+        assert_eq!(
+            self.shape, other.shape,
+            "Cannot elementwise divide {:?} with {:?}",
+            self.shape, other.shape
+        );
+
+        Tensor::new(
+            self.data
+                .iter()
+                .zip(other.data.iter())
+                .map(|(a, b)| a / b)
+                .collect(),
+            self.shape,
+        )
+    }
+}
+
+impl Div<f32> for Tensor {
+    type Output = Tensor;
+    fn div(self, other: f32) -> Tensor {
+        Tensor::new(
+            self.data.iter().map(|x| x / other).collect(),
+            self.shape.clone(),
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -95,7 +217,6 @@ mod tests {
     #[test]
     fn tensor_creation() {
         let t = Tensor::new(vec![1.0, 2.0, 3.0], vec![3]);
-
         assert_eq!(t.shape, vec![3]);
     }
     #[test]
@@ -103,7 +224,6 @@ mod tests {
         let a = Tensor::new(vec![3.], vec![1, 1]);
         let b = Tensor::new(vec![7.], vec![1, 1]);
         let c = a.matmul(&b);
-
         assert_eq!(c.data, vec![21.]);
     }
     #[test]
@@ -111,7 +231,6 @@ mod tests {
         let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
         let b = Tensor::new(vec![5., 6., 7., 8.], vec![2, 2]);
         let c = a.matmul(&b);
-
         assert_eq!(c.data, vec![19., 22., 43., 50.]);
     }
     #[test]
@@ -119,7 +238,6 @@ mod tests {
         let a = Tensor::new(vec![1., 2., 3., 4., 5., 6., 7., 8., 9.], vec![3, 3]);
         let b = Tensor::new(vec![9., 8., 7., 6., 5., 4., 3., 2., 1.], vec![3, 3]);
         let c = a.matmul(&b);
-
         assert_eq!(c.data, vec![30., 24., 18., 84., 69., 54., 138., 114., 90.,]);
     }
 
@@ -128,7 +246,6 @@ mod tests {
         let a = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
         let b = Tensor::new(vec![7., 8., 9., 10., 11., 12.], vec![3, 2]);
         let c = a.matmul(&b);
-
         assert_eq!(c.data, vec![58., 64., 139., 154.,]);
     }
 
@@ -137,7 +254,6 @@ mod tests {
     fn matmul_invalid_shapes() {
         let a = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
         let b = Tensor::new(vec![7., 8., 9., 10.], vec![2, 2]);
-
         a.matmul(&b);
     }
 
@@ -157,14 +273,113 @@ mod tests {
 
     #[test]
     fn transpose_2x3() {
-        // [1, 2, 3]
-        // [4, 5, 6]
-        // 1 4
-        // 2 5
-        // 3 6
         let a = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
         let t = a.transpose();
         assert_eq!(t.data, vec![1., 4., 2., 5., 3., 6.]);
         assert_eq!(t.shape, vec![3, 2]);
+    }
+
+    #[test]
+    fn add_2x2() {
+        let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let b = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let c = a + b;
+        assert_eq!(c.data, vec![2., 4., 6., 8.]);
+        assert_eq!(c.shape, vec![2, 2]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot add [2, 3] with [2, 2]")]
+    fn add_invalid_shapes() {
+        let a = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
+        let b = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let _ = a + b;
+    }
+
+    #[test]
+    fn add_scalar() {
+        let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let b = 10.;
+        let c = a + b;
+        assert_eq!(c.data, vec![11., 12., 13., 14.]);
+        assert_eq!(c.shape, vec![2, 2]);
+    }
+
+    #[test]
+    fn sub_2x2() {
+        let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let b = Tensor::new(vec![1., 1., 3., 5.], vec![2, 2]);
+        let c = a - b;
+        assert_eq!(c.data, vec![0., 1., 0., -1.]);
+        assert_eq!(c.shape, vec![2, 2]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot sub [2, 3] with [2, 2]")]
+    fn sub_invalid_shapes() {
+        let a = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
+        let b = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let _ = a - b;
+    }
+
+    #[test]
+    fn sub_scalar() {
+        let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let b = 10.;
+        let c = a - b;
+        assert_eq!(c.data, vec![-9., -8., -7., -6.]);
+        assert_eq!(c.shape, vec![2, 2]);
+    }
+
+    #[test]
+    fn mul_2x2() {
+        let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let b = Tensor::new(vec![1., 1., 3., -5.], vec![2, 2]);
+        let c = a * b;
+        assert_eq!(c.data, vec![1., 2., 9., -20.]);
+        assert_eq!(c.shape, vec![2, 2]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot elementwise multiply [2, 3] with [2, 2]")]
+    fn mul_invalid_shapes() {
+        let a = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
+        let b = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let _ = a * b;
+    }
+
+    #[test]
+    fn mul_scalar() {
+        let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let b = 10.;
+        let c = a * b;
+        assert_eq!(c.data, vec![10., 20., 30., 40.]);
+        assert_eq!(c.shape, vec![2, 2]);
+    }
+
+    #[test]
+    fn div_2x2() {
+        let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let b = Tensor::new(vec![1., 1., 3., -5.], vec![2, 2]);
+        let c = a / b;
+        assert_eq!(c.data, vec![1., 2., 1., -0.8]);
+        assert_eq!(c.shape, vec![2, 2]);
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot elementwise divide [2, 3] with [2, 2]")]
+    fn div_invalid_shapes() {
+        let a = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
+        let b = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let _ = a / b;
+    }
+
+    #[test]
+    fn div_scalar() {
+        let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let b = 10.;
+        let c = a / b;
+        assert_eq!(c.data, vec![0.1, 0.2, 0.3, 0.4]);
+        assert_eq!(c.shape, vec![2, 2]);
     }
 }
