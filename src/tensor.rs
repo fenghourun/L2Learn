@@ -21,6 +21,10 @@ impl Tensor {
         Self { data, shape }
     }
 
+    pub fn has_nan(&self) -> bool {
+        self.data.iter().any(|x| x.is_nan())
+    }
+
     pub fn matmul(&self, other: &Tensor) -> Tensor {
         assert_eq!(self.shape.len(), 2);
         assert_eq!(other.shape.len(), 2);
@@ -65,6 +69,26 @@ impl Tensor {
         }
 
         transpose
+    }
+
+    pub fn sum(&self) -> f32 {
+        self.data.iter().sum()
+    }
+
+    pub fn mean(&self) -> f32 {
+        if self.data.len() == 0 {
+            f32::NAN
+        } else {
+            let sum: f32 = self.data.iter().sum();
+            sum / self.data.len() as f32
+        }
+    }
+
+    pub fn var(&self) -> f32 {
+        let mean = self.mean();
+        let numerator: f32 = self.data.iter().map(|x| (x - mean).powi(2)).sum();
+
+        numerator / self.data.len() as f32
     }
 
     /// For a 2D matrix return the element corresponding to the (i, j)'th element
@@ -218,6 +242,11 @@ mod tests {
     fn tensor_creation() {
         let t = Tensor::new(vec![1.0, 2.0, 3.0], vec![3]);
         assert_eq!(t.shape, vec![3]);
+    }
+    #[test]
+    fn has_nan() {
+        let t = Tensor::new(vec![1.0, 2.0, f32::NAN], vec![3]);
+        assert!(t.has_nan());
     }
     #[test]
     fn matmul_1x1() {
@@ -381,5 +410,38 @@ mod tests {
         let c = a / b;
         assert_eq!(c.data, vec![0.1, 0.2, 0.3, 0.4]);
         assert_eq!(c.shape, vec![2, 2]);
+    }
+
+    #[test]
+    fn mean_2x2() {
+        let t = Tensor::new(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]);
+
+        let mean = t.mean();
+        assert_eq!(mean, 2.5);
+    }
+
+    #[test]
+    fn mean_contains_nan_propagates() {
+        let t = Tensor::new(vec![1.0, f32::NAN, 3.0, 4.0], vec![2, 2]);
+        let mean = t.mean();
+        assert!(mean.is_nan());
+        assert!(t.has_nan());
+    }
+
+    #[test]
+    fn var_2x2() {
+        let t = Tensor::new(vec![1.0, 2.0, 3.0, 4.0], vec![2, 2]);
+        let var = t.var();
+        assert_eq!(var, 1.25);
+    }
+
+    #[test]
+    fn var_contains_nan_propagates() {
+        let t = Tensor::new(vec![1.0, 2.0, f32::NAN, 4.0], vec![2, 2]);
+
+        let var = t.var();
+
+        assert!(var.is_nan());
+        assert!(t.has_nan());
     }
 }
