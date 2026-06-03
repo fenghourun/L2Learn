@@ -34,21 +34,57 @@ impl Tensor {
             self.shape, other.shape
         );
 
-        let mut result = vec![0.0; m * n];
+        let mut data = vec![0.0; m * n];
 
         for i in 0..n {
             for j in 0..m {
                 // Construct the (i, j) th element of the product matrix
                 let mut sum = 0.0;
                 for t in 0..k {
-                    sum += self.data[i * k + t] // (i, t) th element of a
-                     * other.data[t * n + j]; // (t, j) th element of other
+                    sum += self.get_element_at(i, t) * other.get_element_at(t, j);
                 }
-                result[i * n + j] = sum;
+                data[i * n + j] = sum;
             }
         }
 
-        Tensor::new(result, vec![n, m])
+        Tensor::new(data, vec![n, m])
+    }
+
+    pub fn transpose(&self) -> Tensor {
+        let n = self.shape[0];
+        let m = self.shape[1];
+        let mut transpose = Tensor::new(vec![0.0; n * m], vec![m, n]);
+
+        for i in 0..n {
+            for j in 0..m {
+                let element = self.get_element_at(i, j);
+                transpose.set_element_at(j, i, element);
+            }
+        }
+
+        transpose
+    }
+
+    /// For a 2D matrix return the element corresponding to the (i, j)'th element
+    fn get_element_at(&self, i: usize, j: usize) -> f32 {
+        let n = self.shape[0];
+        let m = self.shape[1];
+
+        assert!(i <= n, "Invalid index i {:?} for shape {:?}", i, self.shape);
+        assert!(j <= m, "Invalid index j {:?} for shape {:?}", j, self.shape);
+
+        self.data[i * m + j]
+    }
+
+    /// For a 2D matrix set the element corresponding to the (i, j)'th element
+    fn set_element_at(&mut self, i: usize, j: usize, value: f32) {
+        let n = self.shape[0];
+        let m = self.shape[1];
+
+        assert!(i <= n, "Invalid index i {:?} for shape {:?}", i, self.shape);
+        assert!(j <= m, "Invalid index j {:?} for shape {:?}", j, self.shape);
+
+        self.data[i * m + j] = value;
     }
 }
 
@@ -103,5 +139,32 @@ mod tests {
         let b = Tensor::new(vec![7., 8., 9., 10.], vec![2, 2]);
 
         a.matmul(&b);
+    }
+
+    #[test]
+    fn transpose_1x1() {
+        let a = Tensor::new(vec![5.], vec![1, 1]);
+        let t = a.transpose();
+        assert_eq!(t.data, vec![5.]);
+    }
+
+    #[test]
+    fn transpose_2x2() {
+        let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let t = a.transpose();
+        assert_eq!(t.data, vec![1., 3., 2., 4.]);
+    }
+
+    #[test]
+    fn transpose_2x3() {
+        // [1, 2, 3]
+        // [4, 5, 6]
+        // 1 4
+        // 2 5
+        // 3 6
+        let a = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
+        let t = a.transpose();
+        assert_eq!(t.data, vec![1., 4., 2., 5., 3., 6.]);
+        assert_eq!(t.shape, vec![3, 2]);
     }
 }
