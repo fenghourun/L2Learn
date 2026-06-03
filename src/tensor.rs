@@ -25,35 +25,22 @@ impl Tensor {
         self.data.iter().any(|x| x.is_nan())
     }
 
-    pub fn matmul(&self, other: &Tensor) -> Tensor {
-        assert_eq!(self.shape.len(), 2);
-        assert_eq!(other.shape.len(), 2);
-
-        let n = self.shape[0];
-        let k = self.shape[1];
-        let k2 = other.shape[0];
-        let m = other.shape[1];
-
+    /// Hadamard product (component wise multiplication)
+    pub fn hadamard(&self, other: &Tensor) -> Tensor {
         assert_eq!(
-            k, k2,
-            "Cannot multiply {:?} by {:?}",
+            self.shape, other.shape,
+            "Cannot component wise multiply {:?} with {:?}",
             self.shape, other.shape
         );
 
-        let mut data = vec![0.0; m * n];
-
-        for i in 0..n {
-            for j in 0..m {
-                // Construct the (i, j) th element of the product matrix
-                let mut sum = 0.0;
-                for t in 0..k {
-                    sum += self.get_element_at(i, t) * other.get_element_at(t, j);
-                }
-                data[i * n + j] = sum;
-            }
-        }
-
-        Tensor::new(data, vec![n, m])
+        Tensor::new(
+            self.data
+                .iter()
+                .zip(other.data.iter())
+                .map(|(a, b)| a * b)
+                .collect(),
+            self.shape.clone(),
+        )
     }
 
     pub fn transpose(&self) -> Tensor {
@@ -89,6 +76,33 @@ impl Tensor {
         let numerator: f32 = self.data.iter().map(|x| (x - mean).powi(2)).sum();
 
         numerator / self.data.len() as f32
+    }
+
+    pub fn softmax(&self) -> Tensor {
+        // let rank = self.shape.len();
+        // assert!(
+        //     dim < rank,
+        //     "Softmax: dim {} out of bounds for tensor of rank {}",
+        //     dim,
+        //     rank
+        // );
+
+        let (n, m) = (self.shape[0], self.shape[1]);
+
+        // Row wise (dim = 0)
+        let mut row_exp_sums = vec![0.0; n * m];
+        for i in 0..n {
+            row_exp_sums[i] = (0..m).map(|j| self.get_element_at(i, j).exp()).sum()
+        }
+
+        let mut result = Tensor::new(vec![0.0; n * m], self.shape.clone());
+        for i in 0..n {
+            for j in 0..m {
+                result.set_element_at(i, j, self.get_element_at(i, j).exp() / row_exp_sums[i]);
+            }
+        }
+
+        result
     }
 
     /// For a 2D matrix return the element corresponding to the (i, j)'th element
@@ -177,20 +191,34 @@ impl Sub<f32> for Tensor {
 impl Mul for Tensor {
     type Output = Tensor;
     fn mul(self, other: Tensor) -> Tensor {
+        assert_eq!(self.shape.len(), 2);
+        assert_eq!(other.shape.len(), 2);
+
+        let n = self.shape[0];
+        let k = self.shape[1];
+        let k2 = other.shape[0];
+        let m = other.shape[1];
+
         assert_eq!(
-            self.shape, other.shape,
-            "Cannot elementwise multiply {:?} with {:?}",
+            k, k2,
+            "Cannot multiply {:?} by {:?}",
             self.shape, other.shape
         );
 
-        Tensor::new(
-            self.data
-                .iter()
-                .zip(other.data.iter())
-                .map(|(a, b)| a * b)
-                .collect(),
-            self.shape,
-        )
+        let mut data = vec![0.0; m * n];
+
+        for i in 0..n {
+            for j in 0..m {
+                // Construct the (i, j) th element of the product matrix
+                let mut sum = 0.0;
+                for t in 0..k {
+                    sum += self.get_element_at(i, t) * other.get_element_at(t, j);
+                }
+                data[i * n + j] = sum;
+            }
+        }
+
+        Tensor::new(data, vec![n, m])
     }
 }
 
@@ -209,7 +237,7 @@ impl Div for Tensor {
     fn div(self, other: Tensor) -> Tensor {
         assert_eq!(
             self.shape, other.shape,
-            "Cannot elementwise divide {:?} with {:?}",
+            "Cannot component wise divide {:?} with {:?}",
             self.shape, other.shape
         );
 
@@ -252,21 +280,21 @@ mod tests {
     fn matmul_1x1() {
         let a = Tensor::new(vec![3.], vec![1, 1]);
         let b = Tensor::new(vec![7.], vec![1, 1]);
-        let c = a.matmul(&b);
+        let c = a * b;
         assert_eq!(c.data, vec![21.]);
     }
     #[test]
     fn matmul_2x2() {
         let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
         let b = Tensor::new(vec![5., 6., 7., 8.], vec![2, 2]);
-        let c = a.matmul(&b);
+        let c = a * b;
         assert_eq!(c.data, vec![19., 22., 43., 50.]);
     }
     #[test]
     fn matmul_3x3() {
         let a = Tensor::new(vec![1., 2., 3., 4., 5., 6., 7., 8., 9.], vec![3, 3]);
         let b = Tensor::new(vec![9., 8., 7., 6., 5., 4., 3., 2., 1.], vec![3, 3]);
-        let c = a.matmul(&b);
+        let c = a * b;
         assert_eq!(c.data, vec![30., 24., 18., 84., 69., 54., 138., 114., 90.,]);
     }
 
@@ -274,7 +302,7 @@ mod tests {
     fn matmul_rectangular() {
         let a = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
         let b = Tensor::new(vec![7., 8., 9., 10., 11., 12.], vec![3, 2]);
-        let c = a.matmul(&b);
+        let c = a * b;
         assert_eq!(c.data, vec![58., 64., 139., 154.,]);
     }
 
@@ -283,7 +311,7 @@ mod tests {
     fn matmul_invalid_shapes() {
         let a = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
         let b = Tensor::new(vec![7., 8., 9., 10.], vec![2, 2]);
-        a.matmul(&b);
+        let _ = a * b;
     }
 
     #[test]
@@ -361,20 +389,20 @@ mod tests {
     }
 
     #[test]
-    fn mul_2x2() {
+    fn hadamard_mul_2x2() {
         let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
         let b = Tensor::new(vec![1., 1., 3., -5.], vec![2, 2]);
-        let c = a * b;
+        let c = a.hadamard(&b);
         assert_eq!(c.data, vec![1., 2., 9., -20.]);
         assert_eq!(c.shape, vec![2, 2]);
     }
 
     #[test]
-    #[should_panic(expected = "Cannot elementwise multiply [2, 3] with [2, 2]")]
-    fn mul_invalid_shapes() {
+    #[should_panic(expected = "Cannot component wise multiply [2, 3] with [2, 2]")]
+    fn hadamard_mul_invalid_shapes() {
         let a = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
         let b = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
-        let _ = a * b;
+        let _ = a.hadamard(&b);
     }
 
     #[test]
@@ -396,7 +424,7 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Cannot elementwise divide [2, 3] with [2, 2]")]
+    #[should_panic(expected = "Cannot component wise divide [2, 3] with [2, 2]")]
     fn div_invalid_shapes() {
         let a = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
         let b = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
@@ -438,10 +466,29 @@ mod tests {
     #[test]
     fn var_contains_nan_propagates() {
         let t = Tensor::new(vec![1.0, 2.0, f32::NAN, 4.0], vec![2, 2]);
-
         let var = t.var();
-
         assert!(var.is_nan());
         assert!(t.has_nan());
+    }
+
+    #[test]
+    fn softmax_2x3() {
+        let t = Tensor::new(vec![1.0, 2.0, 0., 2., 1., 3.], vec![2, 3]);
+        let st = t.softmax();
+        let expected = [
+            0.24472847, 0.66524096, 0.09003057, 0.24472847, 0.09003057, 0.66524096,
+        ];
+        assert!(st
+            .data
+            .iter()
+            .zip(expected.iter())
+            .all(|(a, b)| (*a - *b).abs() < 1e-6));
+    }
+
+    #[test]
+    fn sotmax_contains_nan_propagates() {
+        let t = Tensor::new(vec![1.0, 2.0, f32::NAN, 4.0], vec![2, 2]);
+        let st = t.softmax();
+        assert!(st.has_nan());
     }
 }
