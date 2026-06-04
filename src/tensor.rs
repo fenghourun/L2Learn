@@ -49,9 +49,9 @@ impl Tensor {
         let mut transpose = Tensor::new(vec![0.0; n * m], vec![m, n]);
 
         for i in 0..n {
+            let row_i = self.row(i);
             for j in 0..m {
-                let element = self.get_element_at(i, j);
-                transpose.set_element_at(j, i, element);
+                transpose.set_element_at(j, i, row_i[j]);
             }
         }
 
@@ -79,6 +79,7 @@ impl Tensor {
     }
 
     pub fn softmax(&self) -> Tensor {
+        // Default to row wise softmax to start off
         // let rank = self.shape.len();
         // assert!(
         //     dim < rank,
@@ -86,19 +87,17 @@ impl Tensor {
         //     dim,
         //     rank
         // );
-
         let (n, m) = (self.shape[0], self.shape[1]);
-
-        // Row wise (dim = 0)
         let mut row_exp_sums = vec![0.0; n * m];
         for i in 0..n {
-            row_exp_sums[i] = (0..m).map(|j| self.get_element_at(i, j).exp()).sum()
+            row_exp_sums[i] = self.row(i).iter().map(|x| x.exp()).sum();
         }
 
         let mut result = Tensor::new(vec![0.0; n * m], self.shape.clone());
         for i in 0..n {
+            let row_i = self.row(i);
             for j in 0..m {
-                result.set_element_at(i, j, self.get_element_at(i, j).exp() / row_exp_sums[i]);
+                result.set_element_at(i, j, row_i[j].exp() / row_exp_sums[i]);
             }
         }
 
@@ -125,6 +124,18 @@ impl Tensor {
         assert!(j <= m, "Invalid index j {:?} for shape {:?}", j, self.shape);
 
         self.data[i * m + j] = value;
+    }
+
+    fn row(&self, i: usize) -> &[f32] {
+        let cols = self.shape[1];
+        let start = i * cols;
+        &self.data[start..start + cols]
+    }
+
+    fn row_mut(&mut self, i: usize) -> &mut [f32] {
+        let cols = self.shape[1];
+        let start = i * cols;
+        &mut self.data[start..start + cols]
     }
 }
 
@@ -206,15 +217,16 @@ impl Mul for Tensor {
         );
 
         let mut data = vec![0.0; m * n];
-
         for i in 0..n {
+            let a_row_i = self.row(i);
+
             for j in 0..m {
-                // Construct the (i, j) th element of the product matrix
                 let mut sum = 0.0;
+
                 for t in 0..k {
-                    sum += self.get_element_at(i, t) * other.get_element_at(t, j);
+                    sum += a_row_i[t] * other.get_element_at(t, j);
                 }
-                data[i * n + j] = sum;
+                data[i * m + j] = sum;
             }
         }
 
@@ -304,6 +316,15 @@ mod tests {
         let b = Tensor::new(vec![7., 8., 9., 10., 11., 12.], vec![3, 2]);
         let c = a * b;
         assert_eq!(c.data, vec![58., 64., 139., 154.,]);
+    }
+
+    #[test]
+    fn matmul_2x2_by_2x3() {
+        let a = Tensor::new(vec![1., 2., 3., 4.], vec![2, 2]);
+        let b = Tensor::new(vec![1., 2., 3., 4., 5., 6.], vec![2, 3]);
+        let c = a * b;
+        assert_eq!(c.shape, vec![2, 3]);
+        assert_eq!(c.data, vec![9., 12., 15., 19., 26., 33.,]);
     }
 
     #[test]

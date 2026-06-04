@@ -6,81 +6,8 @@ Build a minimal GPT implementation from scratch in Rust.
 
 ---
 
-# Tensor
-
-```rust
-pub struct Tensor {
-    data: Vec<f32>,
-    shape: Vec<usize>,
-}
-```
-
-## Construction
-
-```rust
-Tensor::new(data, shape) -> Tensor
-Tensor::zeros(shape) -> Tensor
-```
-
-## Metadata
-
-```rust
-tensor.shape() -> &[usize]
-tensor.numel() -> usize
-```
-
-## Shape Ops
-
-```rust
-tensor.reshape(shape) -> Tensor
-tensor.transpose() -> Tensor
-```
-
-## Elementwise Ops
-
-```rust
-tensor.add(&other) -> Tensor
-tensor.sub(&other) -> Tensor
-tensor.mul(&other) -> Tensor
-tensor.div(&other) -> Tensor
-```
-
-## Scalar Ops
-
-```rust
-tensor.add_scalar(x) -> Tensor
-tensor.mul_scalar(x) -> Tensor
-tensor.div_scalar(x) -> Tensor
-```
-
-## Matrix Ops
-
-```rust
-tensor.matmul(&other) -> Tensor
-```
-
-## Reductions
-
-```rust
-tensor.sum() -> f32
-tensor.mean() -> f32
-tensor.var() -> f32
-```
-
-## Activations
-
-```rust
-tensor.softmax() -> Tensor
-tensor.gelu() -> Tensor
-```
-
-## Utilities
-
-```rust
-tensor.has_nan() -> bool
-tensor.has_inf() -> bool
-tensor.assert_finite()
-```
+# 1. Tensors
+# 2. Automatic differentiation
 
 ## Attention Helpers
 
@@ -304,30 +231,6 @@ for batch in dataset {
     optimizer.zero_grad();
 }
 ```
-
----
-
-# Build Order
-
-1. Tensor
-2. Matmul
-3. Transpose
-4. Softmax
-5. Embedding
-6. Linear
-7. Single-Head Attention
-8. Causal Mask
-9. Multi-Head Attention
-10. LayerNorm
-11. MLP
-12. Transformer Block
-13. GPT
-14. Text Generation
-15. Autograd
-16. AdamW
-17. Training
-
-
 
 Run tests
 ```
